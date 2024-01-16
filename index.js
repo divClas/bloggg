@@ -1,5 +1,5 @@
 import express, { response } from "express";
-
+import multer from "multer";
 import mongosee from "mongoose";
 import {
   registerValidator,
@@ -16,8 +16,17 @@ mongosee
   )
   .then(() => console.log("DB OK"))
   .catch((err) => console.log("DB ERR", err));
-
+const storage = multer.diskStorage({
+  destination: (_, __, cb) => {
+    cb(null, "uploads");
+  },
+  filename: (_, file, cb) => {
+    cb(null, file.originalname);
+  },
+});
+const upload = multer({ storage });
 const app = express();
+app.use("/uploads", express.static("uploads"));
 
 app.use(express.json());
 //роуты на авторизацию
@@ -27,6 +36,12 @@ app.post("/auth/login", loginValidator, UserController.login);
 app.post("/auth/register", registerValidator, UserController.register);
 //полчеение данных юзера
 app.get("/auth/me", checkAuth, UserController.getMe);
+
+app.post("/upload", checkAuth, upload.single("image"), (req, res) => {
+  res.json({
+    url: `/uploads/${req.file.originalname}`,
+  });
+});
 
 //роуты на новости CRUD
 // получить все новости
